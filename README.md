@@ -1,2 +1,2 @@
-# py_func
+# pyfunc
 Python functions used across multiple projects
