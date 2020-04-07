@@ -24,6 +24,13 @@ from numpy.matlib import repmat
 from scipy.linalg import svd, schur
 from statsmodels.stats import multitest
 
+# Sklearn
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.linear_model import Ridge
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.metrics import make_scorer, r2_score, mean_squared_error, mean_absolute_error
 
 def get_cmap(which_type = 'qual1', num_classes = 8):
     # Returns a nice set of colors to make a nice colormap using the color schemes
@@ -350,4 +357,55 @@ def consistency_thresh(A, thresh = 0.5):
     A_out = np.multiply(A, A_mask_tmp)
     
     return A_out, A_mask
+
+def corr_pred_true(y_pred, y_true):
+    r = sp.stats.pearsonr(y_pred, y_true)[0]
+    return r
+
+def get_reg(num_params = 5):
+    regs = {'rr': Ridge(),
+            'krr_lin': KernelRidge(kernel='linear'),
+            'krr_rbf': KernelRidge(kernel='rbf')}
+    
+    # From the sklearn docs, gamma defaults to 1/n_features. In my cases that will be either 1/400 features = 0.0025 or 1/200 = 0.005.
+    # I'll set gamma to same range as alpha then [0.001 to 1] - this way, the defaults will be included in the gridsearch
+    param_grids = {'rr': {'reg__alpha': np.logspace(0, -3, num_params)},
+                   'krr_lin': {'reg__alpha': np.logspace(0, -3, num_params)},
+                   'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)}}
+    
+    return regs, param_grids
+
+def get_stratified_cv(X, y, n_splits = 10):
+
+    # sort data on outcome variable in ascending order
+    idx = y.sort_values(ascending = True).index
+    X_sort = X.loc[idx,:]
+    y_sort = y.loc[idx]
+    
+    # create custom stratified kfold on outcome variable
+    my_cv = []
+    for k in range(n_splits):
+        my_bool = np.zeros(y.shape[0]).astype(bool)
+        my_bool[np.arange(k,y.shape[0],n_splits)] = True
+
+        train_idx = np.where(my_bool == False)[0]
+        test_idx = np.where(my_bool == True)[0]
+        my_cv.append( (train_idx, test_idx) )  
+
+    return X_sort, y_sort, my_cv
+
+def run_reg_scv(X, y, reg, param_grid, n_splits = 10, scoring = 'r2'):
+    
+    pipe = Pipeline(steps=[('standardize', StandardScaler()),
+                           ('reg', reg)])
+    
+    X_sort, y_sort, my_cv = get_stratified_cv(X, y, n_splits = n_splits)
+    
+    # if scoring is a dictionary then we run GridSearchCV with multiple scoring metrics and refit using the first one in the dict
+    if type(scoring) == dict: grid = GridSearchCV(pipe, param_grid, cv = my_cv, scoring = scoring, refit = list(scoring.keys())[0])
+    else: grid = GridSearchCV(pipe, param_grid, cv = my_cv, scoring = scoring)
+    
+    grid.fit(X_sort, y_sort);
+    
+    return grid
 
