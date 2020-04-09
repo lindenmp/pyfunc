@@ -440,6 +440,122 @@ def run_pheno_correlations(df_phenos, df_z, method = 'pearson', assign_p = 'perm
     return df_out
 
 
+def run_pheno_partialcorrs(df_phenos, df_z, method = 'pearson'):
+    df_input = pd.concat((df_phenos, df_z), axis = 1)
+    if method == 'pearson': df_out = pd.DataFrame(columns = ['pheno','variable','coef', 'p', 'BF10'])
+    else: df_out = pd.DataFrame(columns = ['pheno','variable','coef', 'p'])
+    phenos = list(df_phenos.columns)
+    
+    for pheno in phenos:
+        print(pheno)
+        if method == 'pearson': df_tmp = pd.DataFrame(index = df_z.columns, columns = ['coef', 'p', 'BF10'])
+        else: df_tmp = pd.DataFrame(index = df_z.columns, columns = ['coef', 'p'])
+        
+        phenos_cov = phenos.copy(); phenos_cov.remove(pheno)
+        results = pg.pairwise_corr(data = df_input, columns = [[pheno], list(df_z.columns)], covar = phenos_cov, method = method)
+        results.set_index('Y', inplace = True)
+        df_tmp.loc[:,'coef'] = results['r']; df_tmp.loc[:,'p'] = results['p-unc']
+        if method == 'pearson': df_tmp.loc[:,'BF10'] = results['BF10'].astype(float)
+        
+        # append
+        df_tmp.reset_index(inplace = True); df_tmp.rename(index=str, columns={'index': 'variable'}, inplace = True); df_tmp['pheno'] = pheno
+        df_out = df_out.append(df_tmp, sort = False)
+    df_out.set_index(['pheno','variable'], inplace = True)
+    
+    return df_out
+
+
+def run_corr(my_series, my_dataframe, method = 'pearsonr'):
+    """ Simple correlation between pandas series and columns in a dataframe """
+    df_corr = pd.DataFrame(index = my_dataframe.columns, columns = ['coef', 'p'])
+    if method == 'spearmanr':
+        for i, row in df_corr.iterrows():
+            df_corr.loc[i] = sp.stats.spearmanr(my_series, my_dataframe[i])
+    elif method == 'pearsonr':
+        for i, row in df_corr.iterrows():
+            df_corr.loc[i] = sp.stats.pearsonr(my_series, my_dataframe[i])
+
+    return df_corr
+
+
+def dependent_corr(xy, xz, yz, n, twotailed=True):
+    """
+    Calculates the statistic significance between two dependent correlation coefficients
+    @param xy: correlation coefficient between x and y
+    @param xz: correlation coefficient between x and z
+    @param yz: correlation coefficient between y and z
+    @param n: number of elements in x, y and z
+    @param twotailed: whether to calculate a one or two tailed test, only works for 'steiger' method
+    @param conf_level: confidence level, only works for 'zou' method
+    @param method: defines the method uses, 'steiger' or 'zou'
+    @return: t and p-val
+    
+    Author: Philipp Singer (www.philippsinger.info)
+    copied on 20/1/2020 from https://github.com/psinger/CorrelationStats/blob/master/corrstats.py
+    """
+    d = xy - xz
+    determin = 1 - xy * xy - xz * xz - yz * yz + 2 * xy * xz * yz
+    av = (xy + xz)/2
+    cube = (1 - yz) * (1 - yz) * (1 - yz)
+
+    t2 = d * np.sqrt((n - 1) * (1 + yz)/(((2 * (n - 1)/(n - 3)) * determin + av * av * cube)))
+    p = 1 - t.cdf(abs(t2), n - 3)
+
+    if twotailed:
+        p *= 2
+
+    return t2, p
+
+
+# Create grouping variable
+def create_dummy_vars(df, groups):
+    dummy_vars = np.zeros((df.shape[0],1)).astype(bool)
+    for i, group in enumerate(groups):
+        x = df.loc[:,group].values == 4
+        print(group+':', x.sum())
+        x = x.reshape(-1,1)
+        x = x.astype(bool)
+        dummy_vars = np.append(dummy_vars, x, axis = 1)
+    dummy_vars = dummy_vars[:,1:]
+    
+    # filter comorbid
+    comorbid_diag = np.sum(dummy_vars, axis = 1) > 1
+    print('Comorbid N:', comorbid_diag.sum())
+    dummy_vars[comorbid_diag,:] = 0
+
+    for i, group in enumerate(groups):
+        print(group+':', dummy_vars[:,i].sum())
+    
+    return dummy_vars
+
+
+def run_ttest(df_x, df_y = '', tail = 'two'):
+    df_out = pd.DataFrame(index = df_x.columns)
+    if type(df_y) == str:
+        df_out.loc[:,'mean'] = df_x.mean(axis = 0)
+        test = sp.stats.ttest_1samp(df_x, popmean = 0)
+    else:
+        df_out.loc[:,'mean_diff'] = df_x.mean(axis = 0) - df_y.mean(axis = 0)
+        test = sp.stats.ttest_ind(df_x, df_y)
+        
+    df_out.loc[:,'tstat'] = test[0]
+    df_out.loc[:,'p'] = test[1]
+    
+    if tail == 'one': df_out.loc[:,'p'] = df_out.loc[:,'p']/2
+        
+    df_out.loc[:,'p-corr'] = get_fdr_p(df_out.loc[:,'p'])
+    
+    return df_out
+
+
+def get_cohend(df_x, df_y):
+    df_out = pd.DataFrame(index = df_x.columns)
+    df_out.loc[:,'mean_diff'] = df_x.mean(axis = 0) - df_y.mean(axis = 0)
+    df_out.loc[:,'d'] = df_out.loc[:,'mean_diff'] / pd.concat((df_x,df_y), axis = 0).std()
+    
+    return df_out
+
+
 def perc_dev(Z, thr = 2.6, sign = 'abs'):
     if sign == 'abs':
         bol = np.abs(Z) > thr;
