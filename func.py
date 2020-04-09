@@ -32,7 +32,7 @@ from sklearn.linear_model import Ridge
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.metrics import make_scorer, r2_score, mean_squared_error, mean_absolute_error
 
-def get_cmap(which_type = 'qual1', num_classes = 8):
+def my_get_cmap(which_type = 'qual1', num_classes = 8):
     # Returns a nice set of colors to make a nice colormap using the color schemes
     # from http://colorbrewer2.org/
     #
