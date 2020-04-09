@@ -95,6 +95,140 @@ def my_get_cmap(which_type = 'qual1', num_classes = 8):
     return cmap
 
 
+def get_sys_prop(coef, p_vals, idx, alpha = 0.05):
+    u_idx = np.unique(idx)
+    sys_prop = np.zeros((len(u_idx),2))
+
+    for i in u_idx:
+        # filter regions by system idx
+        coef_tmp = coef[idx == i]
+        p_tmp = p_vals[idx == i]
+        
+        # threshold out non-sig coef
+        coef_tmp = coef_tmp[p_tmp < alpha]
+
+        # proportion of signed significant coefs within system i
+        sys_prop[i-1,0] = coef_tmp[coef_tmp > 0].shape[0] / np.sum(idx == i)
+        sys_prop[i-1,1] = coef_tmp[coef_tmp < 0].shape[0] / np.sum(idx == i)
+
+    return sys_prop
+
+
+def get_sys_summary(coef, p_vals, idx, method = 'mean', alpha = 0.05, signed = True):
+    u_idx = np.unique(idx)
+    if signed == True:
+        sys_summary = np.zeros((len(u_idx),2))
+    else:
+        sys_summary = np.zeros((len(u_idx),1))
+        
+    for i in u_idx:
+        # filter regions by system idx
+        coef_tmp = coef[idx == i]
+        p_tmp = p_vals[idx == i]
+        
+        # threshold out non-sig coef
+        coef_tmp = coef_tmp[p_tmp < alpha]
+
+        # proportion of signed significant coefs within system i
+        if method == 'mean':
+            if signed == True:
+                if any(coef_tmp[coef_tmp > 0]): sys_summary[i-1,0] = np.mean(abs(coef_tmp[coef_tmp > 0]))
+                if any(coef_tmp[coef_tmp < 0]): sys_summary[i-1,1] = np.mean(abs(coef_tmp[coef_tmp < 0]))
+            else:
+                try:
+                    sys_summary[i-1,0] = np.mean(coef_tmp[coef_tmp != 0])
+                except:
+                    sys_summary[i-1,0] = 0
+                
+        elif method == 'median':
+            if signed == True:
+                if any(coef_tmp[coef_tmp > 0]): sys_summary[i-1,0] = np.median(abs(coef_tmp[coef_tmp > 0]))
+                if any(coef_tmp[coef_tmp < 0]): sys_summary[i-1,1] = np.median(abs(coef_tmp[coef_tmp < 0]))
+            else:
+                try:
+                    sys_summary[i-1,0] = np.median(coef_tmp[coef_tmp != 0])
+                except:
+                    sys_summary[i-1,0] = 0
+                    
+        elif method == 'max':
+            if signed == True:
+                if any(coef_tmp[coef_tmp > 0]): sys_summary[i-1,0] = np.max(abs(coef_tmp[coef_tmp > 0]))
+                if any(coef_tmp[coef_tmp < 0]): sys_summary[i-1,1] = np.max(abs(coef_tmp[coef_tmp < 0]))
+            else:
+                try:
+                    sys_summary[i-1,0] = np.max(coef_tmp[coef_tmp != 0])
+                except:
+                    sys_summary[i-1,0] = 0
+
+        if np.any(np.isnan(sys_summary)):
+            sys_summary[np.isnan(sys_summary)] = 0
+
+    return sys_summary
+
+
+def prop_bar_plot(sys_prop, sys_summary, labels = '', which_colors = 'yeo17', axlim = 'auto', title_str = '', fig_size = [4,4]):
+    f, ax = plt.subplots()
+    f.set_figwidth(fig_size[0])
+    f.set_figheight(fig_size[1])
+
+    y_pos = np.arange(1,sys_prop.shape[0]+1)
+
+    if which_colors == 'solid':
+        cmap = my_get_cmap(which_type = 'redblu_pair', num_classes = 2)
+        ax.barh(y_pos, sys_prop[:,0], color = cmap[0], edgecolor = 'k', align='center')
+        if sys_prop.shape[1] == 2:
+            ax.barh(y_pos, -sys_prop[:,1], color = cmap[1], edgecolor = 'k', align='center')
+        ax.axvline(linewidth = 1, color = 'k')
+    elif which_colors == 'opac_scaler':
+        cmap = my_get_cmap(which_type = 'redblu_pair', num_classes = 2)
+        for i in range(sys_prop.shape[0]):
+            ax.barh(y_pos[i], sys_prop[i,0], facecolor = np.append(cmap[0], sys_summary[i,0]), edgecolor = 'k', align='center')
+            if sys_prop.shape[1] == 2:
+                ax.barh(y_pos[i], -sys_prop[i,1], facecolor = np.append(cmap[1], sys_summary[i,1]), edgecolor = 'k', align='center')
+        ax.axvline(linewidth = 1, color = 'k')
+    else:
+        cmap = my_get_cmap(which_type = which_colors, num_classes = sys_prop.shape[0])
+        ax.barh(y_pos, sys_prop[:,0], color = cmap, linewidth = 0, align='center')
+        if sys_prop.shape[1] == 2:
+            ax.barh(y_pos, -sys_prop[:,1], color = cmap, linewidth = 0, align='center')
+        ax.axvline(linewidth = 1, color = 'k')
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels)        
+    ax.invert_yaxis() # labels read top-to-bottom
+
+    if axlim == 'auto':
+        anchors = np.array([0.2, 0.4, 0.6, 0.8, 1])
+        the_max = np.round(np.max(sys_prop),2)
+        ax_anchor = anchors[find_nearest_above(anchors, the_max)]
+        ax.set_xlim([-ax_anchor-ax_anchor*.05, ax_anchor+ax_anchor*.05])
+    else:
+        if axlim == 0.2:
+            ax.set_xticks(np.arange(axlim[0], axlim[1]+0.1, 0.1))
+        elif axlim == 0.1:
+            ax.set_xticks(np.arange(axlim[0], axlim[1]+0.05, 0.05))
+        elif axlim == 1:
+            ax.set_xticks(np.arange(axlim[0], axlim[1]+0.5, 0.5))
+        else:
+            ax.set_xlim([axlim[0], axlim[1]])
+
+    ax.xaxis.grid(True, which='major')
+
+    ax.xaxis.tick_top()
+    if sys_prop.shape[1] == 2:
+        ax.set_xticklabels([str(abs(np.round(x,2))) for x in ax.get_xticks()])
+    ax.set_title(title_str)
+
+    # Hide the right and top spines
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
+    plt.show()
+
+    return f, ax
+
+
 def update_progress(progress, my_str = ''):
     bar_length = 20
     if isinstance(progress, int):
