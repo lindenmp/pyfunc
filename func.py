@@ -608,9 +608,11 @@ def consistency_thresh(A, thresh = 0.5):
     
     return A_out, A_mask
 
+
 def corr_pred_true(y_pred, y_true):
     r = sp.stats.pearsonr(y_pred, y_true)[0]
     return r
+
 
 def get_reg(num_params = 5):
     regs = {'rr': Ridge(),
@@ -624,6 +626,7 @@ def get_reg(num_params = 5):
                    'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)}}
     
     return regs, param_grids
+
 
 def get_stratified_cv(X, y, n_splits = 10):
 
@@ -643,6 +646,7 @@ def get_stratified_cv(X, y, n_splits = 10):
         my_cv.append( (train_idx, test_idx) )  
 
     return X_sort, y_sort, my_cv
+
 
 def run_reg_scv(X, y, reg, param_grid, n_splits = 10, scoring = 'r2'):
     
