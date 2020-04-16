@@ -28,9 +28,11 @@ from statsmodels.stats import multitest
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, GridSearchCV
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, Lasso
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.svm import SVR, LinearSVR
 from sklearn.metrics import make_scorer, r2_score, mean_squared_error, mean_absolute_error
+from sklearn.decomposition import PCA
 
 def my_get_cmap(which_type = 'qual1', num_classes = 8):
     # Returns a nice set of colors to make a nice colormap using the color schemes
@@ -614,16 +616,25 @@ def corr_pred_true(y_pred, y_true):
     return r
 
 
-def get_reg(num_params = 5):
+def get_reg(num_params = 10):
     regs = {'rr': Ridge(),
+            'lr': Lasso(),
             'krr_lin': KernelRidge(kernel='linear'),
-            'krr_rbf': KernelRidge(kernel='rbf')}
+            'krr_rbf': KernelRidge(kernel='rbf'),
+            # 'svr_lin': LinearSVR(max_iter=100000),
+            'svr_lin': SVR(kernel='linear'),
+            'svr_rbf': SVR(kernel='rbf')
+            }
     
     # From the sklearn docs, gamma defaults to 1/n_features. In my cases that will be either 1/400 features = 0.0025 or 1/200 = 0.005.
     # I'll set gamma to same range as alpha then [0.001 to 1] - this way, the defaults will be included in the gridsearch
     param_grids = {'rr': {'reg__alpha': np.logspace(0, -3, num_params)},
+                    'lr': {'reg__alpha': np.logspace(0, -3, num_params)},
                    'krr_lin': {'reg__alpha': np.logspace(0, -3, num_params)},
-                   'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)}}
+                   'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)},
+                    'svr_lin': {'reg__C': np.logspace(0, 4, num_params)},
+                    'svr_rbf': {'reg__C': np.logspace(0, 4, num_params), 'reg__gamma': np.logspace(0, -3, num_params)}
+                    }
     
     return regs, param_grids
 
@@ -648,10 +659,21 @@ def get_stratified_cv(X, y, n_splits = 10):
     return X_sort, y_sort, my_cv
 
 
-def run_reg_scv(X, y, reg, param_grid, n_splits = 10, scoring = 'r2'):
+def run_reg_scv(X, y, reg, param_grid, n_splits = 10, scoring = 'r2', run_pca = False):
     
-    pipe = Pipeline(steps=[('standardize', StandardScaler()),
-                           ('reg', reg)])
+    if run_pca:
+        # find number of PCs that explain 90% variance
+        pca = PCA(n_components = X.shape[1], svd_solver = 'full')
+        pca.fit(StandardScaler().fit_transform(X))
+        cum_var = np.cumsum(pca.explained_variance_ratio_)
+        n_components = np.where(cum_var >= 0.9)[0][0]+1
+        
+        pipe = Pipeline(steps=[('standardize', StandardScaler()),
+                               ('pca', PCA(n_components = n_components, svd_solver = 'full')),
+                               ('reg', reg)])
+    else:
+        pipe = Pipeline(steps=[('standardize', StandardScaler()),
+                               ('reg', reg)])
     
     X_sort, y_sort, my_cv = get_stratified_cv(X, y, n_splits = n_splits)
     
@@ -661,5 +683,19 @@ def run_reg_scv(X, y, reg, param_grid, n_splits = 10, scoring = 'r2'):
     
     grid.fit(X_sort, y_sort);
     
-    return grid
+    if run_pca:
+        return grid, n_components
+    else:
+        return grid
+
+
+def shuffle_data(X, y, seed = 0):
+    np.random.seed(seed)
+    idx = np.arange(y.shape[0])
+    np.random.shuffle(idx)
+
+    X_shuf = X.iloc[idx,:]
+    y_shuf = y.iloc[idx]
+    
+    return X_shuf, y_shuf
 
