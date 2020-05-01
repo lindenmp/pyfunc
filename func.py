@@ -33,6 +33,8 @@ from sklearn.kernel_ridge import KernelRidge
 from sklearn.svm import SVR, LinearSVR
 from sklearn.metrics import make_scorer, r2_score, mean_squared_error, mean_absolute_error
 from sklearn.decomposition import PCA
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
 
 def my_get_cmap(which_type = 'qual1', num_classes = 8):
     # Returns a nice set of colors to make a nice colormap using the color schemes
@@ -617,34 +619,40 @@ def corr_pred_true(y_pred, y_true):
 
 
 def get_reg(num_params = 10):
-    regs = {'rr': Ridge(),
-            'lr': Lasso(),
+    regs = {'rr': Ridge(max_iter = 100000),
+            'lr': Lasso(max_iter = 100000),
             'krr_lin': KernelRidge(kernel='linear'),
             'krr_rbf': KernelRidge(kernel='rbf'),
             # 'svr_lin': LinearSVR(max_iter=100000),
             'svr_lin': SVR(kernel='linear'),
-            'svr_rbf': SVR(kernel='rbf')
+            'svr_rbf': SVR(kernel='rbf'),
+            'gpr_rbf': GaussianProcessRegressor(kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0)))
             }
     
     # From the sklearn docs, gamma defaults to 1/n_features. In my cases that will be either 1/400 features = 0.0025 or 1/200 = 0.005.
     # I'll set gamma to same range as alpha then [0.001 to 1] - this way, the defaults will be included in the gridsearch
     param_grids = {'rr': {'reg__alpha': np.logspace(0, -3, num_params)},
                     'lr': {'reg__alpha': np.logspace(0, -3, num_params)},
-                   'krr_lin': {'reg__alpha': np.logspace(0, -3, num_params)},
-                   'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)},
+                    'krr_lin': {'reg__alpha': np.logspace(0, -3, num_params)},
+                    'krr_rbf': {'reg__alpha': np.logspace(0, -3, num_params), 'reg__gamma': np.logspace(0, -3, num_params)},
                     'svr_lin': {'reg__C': np.logspace(0, 4, num_params)},
-                    'svr_rbf': {'reg__C': np.logspace(0, 4, num_params), 'reg__gamma': np.logspace(0, -3, num_params)}
+                    'svr_rbf': {'reg__C': np.logspace(0, 4, num_params), 'reg__gamma': np.logspace(0, -3, num_params)},
+                    'gpr_rbf': {'reg__alpha': np.logspace(0, -10, num_params)}
                     }
     
     return regs, param_grids
 
 
-def get_stratified_cv(X, y, n_splits = 10):
+def get_stratified_cv(X, y, c = None, n_splits = 10):
 
     # sort data on outcome variable in ascending order
     idx = y.sort_values(ascending = True).index
-    X_sort = X.loc[idx,:]
+    if X.ndim == 2: X_sort = X.loc[idx,:]
+    elif X.ndim == 1: X_sort = X.loc[idx]
     y_sort = y.loc[idx]
+    if c is not None:
+        if c.ndim == 2: c_sort = c.loc[idx,:]
+        elif c.ndim == 1: c_sort = c.loc[idx]
     
     # create custom stratified kfold on outcome variable
     my_cv = []
