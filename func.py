@@ -28,7 +28,7 @@ from statsmodels.stats import multitest
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, GridSearchCV
-from sklearn.linear_model import Ridge, Lasso
+from sklearn.linear_model import Ridge, Lasso, LinearRegression
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.svm import SVR, LinearSVR
 from sklearn.metrics import make_scorer, r2_score, mean_squared_error, mean_absolute_error
