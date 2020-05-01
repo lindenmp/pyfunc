@@ -110,6 +110,31 @@ def brain_plot(roi_data, parcel_names, parc_file, fig_str, subject_id = 'fsavera
                 my.mlab.savefig(figure = fig,filename = fname2)
                 my.mlab.close()
             else: print('There''s nothing to plot...')
+        elif color == 'viridis' or color == 'viridis_r':
+
+            view = 'lat'
+            fname1 = view + '_' + fig_str + '.png'
+            fig = my.mlab.figure(size = (1000,1000))
+            fig = my.mlab.gcf()
+            brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
+            if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
+            elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
+            brain.add_data(vtx_data, max = plot_max, min = plot_min, thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
+            brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
+            my.mlab.savefig(figure = fig,filename = fname1)
+            my.mlab.close()
+
+            view = 'med'
+            fname2 = view + '_' + fig_str + '.png'
+            fig = my.mlab.figure(size = (1000,1000))
+            fig = my.mlab.gcf()
+            brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
+            if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
+            elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
+            brain.add_data(vtx_data, max = plot_max, min = plot_min, thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
+            brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
+            my.mlab.savefig(figure = fig,filename = fname2)
+            my.mlab.close()
         elif color == 'hot':
             if center_anchor != 0:
                 plot_max = center_anchor
@@ -145,7 +170,7 @@ def brain_plot(roi_data, parcel_names, parc_file, fig_str, subject_id = 'fsavera
             brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
             if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
             elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
-            brain.add_data(vtx_data, min = 1, max = get_cmap('Pastel2').N, thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
+            brain.add_data(vtx_data, min = 1, max = get_cmap('Pastel2'), thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
             brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
             my.mlab.savefig(figure = fig,filename = fname1)
             my.mlab.close()
@@ -157,7 +182,7 @@ def brain_plot(roi_data, parcel_names, parc_file, fig_str, subject_id = 'fsavera
             brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
             if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
             elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
-            brain.add_data(vtx_data, min = 1, max = get_cmap('Pastel2').N, thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
+            brain.add_data(vtx_data, min = 1, max = get_cmap('Pastel2'), thresh = -999, colormap = color, alpha = 1, colorbar = showcolorbar)
             brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
             my.mlab.savefig(figure = fig,filename = fname2)
             my.mlab.close()
