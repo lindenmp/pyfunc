@@ -750,3 +750,26 @@ def cross_val_score_nuis(X, y, c, reg, my_scorer, n_splits = 10):
         accuracy[k] = my_scorer(reg, X_test, y_test)
         
     return accuracy
+
+
+def lesion_adj(A, mask):
+    mask_between = mask[:,np.newaxis] + mask[np.newaxis,:]
+    mask_between[np.ix_(mask,mask)] = 0
+    
+    A_within = A.copy()
+    A_within[np.ix_(mask,mask)] = 0
+    
+    A_between = A.copy()
+    A_between[mask_between] = 0
+    
+    return A_within, A_between
+
+
+def lesion_adj_paired(A, mask_1, mask_2):
+    A_between = A.copy()
+
+    A_between[np.ix_(mask_1,mask_2)] = 0
+    A_between[np.ix_(mask_2,mask_1)] = 0
+    
+    return A_between
+
