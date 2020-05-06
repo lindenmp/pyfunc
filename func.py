@@ -643,6 +643,16 @@ def get_reg(num_params = 10):
     return regs, param_grids
 
 
+def get_cv(X, n_splits = 10):
+    my_kf = KFold(n_splits = n_splits)
+    
+    my_cv = []
+    for i, (tr, te) in enumerate(my_kf.split(X)):
+        my_cv.append(tuple((tr,te)))
+        
+    return my_cv
+
+
 def get_stratified_cv(X, y, c = None, n_splits = 10):
 
     # sort data on outcome variable in ascending order
@@ -662,7 +672,7 @@ def get_stratified_cv(X, y, c = None, n_splits = 10):
 
         train_idx = np.where(my_bool == False)[0]
         test_idx = np.where(my_bool == True)[0]
-        my_cv.append( (train_idx, test_idx) )  
+        my_cv.append( (train_idx, test_idx) )
 
     if c is not None:
         return X_sort, y_sort, my_cv, c_sort
@@ -726,6 +736,42 @@ def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer, n_splits = 10):
         # Split into train test
         X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
         y_train = y.iloc[tr].values.reshape(-1,1); y_test = y.iloc[te].values.reshape(-1,1)
+        c_train = c.iloc[tr]; c_test = c.iloc[te]
+
+        # standardize predictors
+        sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
+
+        # standardize covariates
+        sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
+
+        # regress nuisance (y)
+        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
+        
+        # regress nuisance (X)
+        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, X_train)
+        X_pred = nuis_reg.predict(c_train); X_train = X_train - X_pred
+        X_pred = nuis_reg.predict(c_test); X_test = X_test - X_pred
+
+        reg.fit(X_train, y_train)
+        accuracy[k] = my_scorer(reg, X_test, y_test)
+        
+    return accuracy
+
+
+def cross_val_score_specificity(X, y, c, my_cv, reg, my_scorer, y2, n_splits = 10):
+    
+    accuracy = np.zeros(n_splits,)
+
+    for k in np.arange(len(my_cv)):
+        tr = my_cv[k][0]
+        te = my_cv[k][1]
+
+        # Split into train test
+        X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
+        y_train = y.iloc[tr].values.reshape(-1,1)
+        y_test = y2.iloc[te].values.reshape(-1,1) # this is the only difference between this function and cross_val_score_nuis
         c_train = c.iloc[tr]; c_test = c.iloc[te]
 
         # standardize predictors
