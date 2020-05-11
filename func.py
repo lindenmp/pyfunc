@@ -742,7 +742,7 @@ def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer):
         # Split into train test
         X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
         y_train = y.iloc[tr].values.reshape(-1,1); y_test = y.iloc[te].values.reshape(-1,1)
-        c_train = c.iloc[tr]; c_test = c.iloc[te]
+        c_train = c.iloc[tr,:]; c_test = c.iloc[te,:]
 
         # standardize predictors
         sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
@@ -778,7 +778,7 @@ def cross_val_score_specificity(X, y, c, my_cv, reg, my_scorer, y2, n_splits = 1
         X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
         y_train = y.iloc[tr].values.reshape(-1,1)
         y_test = y2.iloc[te].values.reshape(-1,1) # this is the only difference between this function and cross_val_score_nuis
-        c_train = c.iloc[tr]; c_test = c.iloc[te]
+        c_train = c.iloc[tr,:]; c_test = c.iloc[te,:]
 
         # standardize predictors
         sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
