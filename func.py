@@ -750,15 +750,15 @@ def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer):
         # standardize covariates
         sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
 
-        # regress nuisance (y)
-        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
-        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
-        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
-        
         # regress nuisance (X)
         nuis_reg = LinearRegression(); nuis_reg.fit(c_train, X_train)
         X_pred = nuis_reg.predict(c_train); X_train = X_train - X_pred
         X_pred = nuis_reg.predict(c_test); X_test = X_test - X_pred
+
+        # regress nuisance (y)
+        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
 
         reg.fit(X_train, y_train)
         accuracy[k] = my_scorer(reg, X_test, y_test)
@@ -785,16 +785,16 @@ def cross_val_score_specificity(X, y, c, my_cv, reg, my_scorer, y2, n_splits = 1
 
         # standardize covariates
         sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
-
-        # regress nuisance (y)
-        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
-        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
-        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
         
         # regress nuisance (X)
         nuis_reg = LinearRegression(); nuis_reg.fit(c_train, X_train)
         X_pred = nuis_reg.predict(c_train); X_train = X_train - X_pred
         X_pred = nuis_reg.predict(c_test); X_test = X_test - X_pred
+
+        # regress nuisance (y)
+        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
 
         reg.fit(X_train, y_train)
         accuracy[k] = my_scorer(reg, X_test, y_test)
