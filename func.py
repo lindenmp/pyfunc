@@ -731,9 +731,9 @@ def shuffle_data(X, y, seed = 0):
     return X_shuf, y_shuf
 
 
-def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer, n_splits = 10):
+def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer):
     
-    accuracy = np.zeros(n_splits,)
+    accuracy = np.zeros(len(my_cv),)
 
     for k in np.arange(len(my_cv)):
         tr = my_cv[k][0]
