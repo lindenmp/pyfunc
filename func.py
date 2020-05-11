@@ -766,6 +766,49 @@ def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer):
     return accuracy
 
 
+def cross_val_score_nuis_regional(X, y, c, c_str, my_cv, reg, my_scorer):
+    
+    accuracy = np.zeros(len(my_cv),)
+
+    for k in np.arange(len(my_cv)):
+        tr = my_cv[k][0]
+        te = my_cv[k][1]
+
+        # Split into train test
+        X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
+        y_train = y.iloc[tr].values.reshape(-1,1); y_test = y.iloc[te].values.reshape(-1,1)
+        c_train = c.iloc[tr,:]; c_test = c.iloc[te,:]
+        c_str_train = c_str.iloc[tr,:]; c_str_test = c_str.iloc[te,:]
+
+        # standardize predictors
+        sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
+
+        # standardize covariates
+        sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
+        
+        # standardize regional covariates
+        sc = StandardScaler(); sc.fit(c_str_train); c_str_train = sc.transform(c_str_train); c_str_test = sc.transform(c_str_test)
+
+        for i in np.arange(X_train.shape[1],):
+            c_train_combined = np.concatenate((c_train,c_str_train[:,i].reshape(-1,1)), axis = 1)
+            c_test_combined = np.concatenate((c_test,c_str_test[:,i].reshape(-1,1)), axis = 1)
+
+            # regress nuisance (X)
+            nuis_reg = LinearRegression(); nuis_reg.fit(c_train_combined, X_train[:,i])
+            X_pred = nuis_reg.predict(c_train_combined); X_train[:,i] = X_train[:,i] - X_pred
+            X_pred = nuis_reg.predict(c_test_combined); X_test[:,i] = X_test[:,i] - X_pred
+
+        # regress nuisance (y)
+        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
+
+        reg.fit(X_train, y_train)
+        accuracy[k] = my_scorer(reg, X_test, y_test)
+        
+    return accuracy
+
+
 def cross_val_score_specificity(X, y, c, my_cv, reg, my_scorer, y2, n_splits = 10):
     
     accuracy = np.zeros(n_splits,)
