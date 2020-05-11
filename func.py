@@ -376,10 +376,16 @@ def get_fdr_p(p_vals, alpha = 0.05):
     return p_fdr
 
 
-def get_fdr_p_df(p_vals, alpha = 0.05):
-    p_fdr = pd.DataFrame(index = p_vals.index,
-                        columns = p_vals.columns,
-                        data = np.reshape(get_fdr_p(p_vals.values.flatten(), alpha = alpha), p_vals.shape))
+def get_fdr_p_df(p_vals, alpha = 0.05, rows = False):
+    
+    if rows:
+        p_fdr = pd.DataFrame(index = p_vals.index, columns = p_vals.columns)
+        for row, data in p_vals.iterrows():
+            p_fdr.loc[row,:] = get_fdr_p(data.values)
+    else:
+        p_fdr = pd.DataFrame(index = p_vals.index,
+                            columns = p_vals.columns,
+                            data = np.reshape(get_fdr_p(p_vals.values.flatten(), alpha = alpha), p_vals.shape))
 
     return p_fdr
 
