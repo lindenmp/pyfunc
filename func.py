@@ -817,3 +817,32 @@ def lesion_adj_paired(A, mask_1, mask_2):
     
     return A_between
 
+
+def rank_to_normal(rank, c, n):
+    # Standard quantile function
+    x = (rank - c) / (n - 2*c + 1)
+    return sp.stats.norm.ppf(x)
+
+
+def rank_int(series, c=3.0/8):
+    # Check input
+    assert(isinstance(series, pd.Series))
+    assert(isinstance(c, float))
+
+    # Set seed
+    np.random.seed(123)
+
+    # Drop NaNs
+    series = series.loc[~pd.isnull(series)]
+
+    # Get rank, ties are averaged
+    rank = sp.stats.rankdata(series, method="average")
+
+    # Convert numpy array back to series
+    rank = pd.Series(rank, index=series.index)
+
+    # Convert rank to normal distribution
+    transformed = rank.apply(rank_to_normal, c=c, n=len(rank))
+    
+    return transformed
+
