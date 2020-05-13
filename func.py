@@ -619,9 +619,15 @@ def consistency_thresh(A, thresh = 0.5):
     return A_out, A_mask
 
 
-def corr_pred_true(y_pred, y_true):
-    r = sp.stats.pearsonr(y_pred, y_true)[0]
+def corr_true_pred(y_true, y_pred):
+    r = sp.stats.pearsonr(y_true, y_pred)[0]
     return r
+
+
+def root_mean_squared_error(y_true, y_pred):
+    mse = np.mean((y_true - y_pred)**2, axis=0)
+    rmse = np.sqrt(mse)
+    return rmse
 
 
 def get_reg(num_params = 10):
