@@ -257,6 +257,13 @@ def node_strength(A):
     return s
 
 
+def node_degree(A):
+    B = A > 0
+    k = np.sum(B, axis = 0)
+    
+    return k
+
+
 def ave_control(A, c = 1):
     # FUNCTION:
     #         Returns values of AVERAGE CONTROLLABILITY for each node in a
