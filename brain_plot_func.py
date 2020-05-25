@@ -186,5 +186,26 @@ def brain_plot(roi_data, parcel_names, parc_file, fig_str, subject_id = 'fsavera
             brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
             my.mlab.savefig(figure = fig,filename = fname2)
             my.mlab.close()
-    else: print('There''s nothing to plot...')
+    else:
+        view = 'lat'
+        fname1 = view + '_' + fig_str + '.png'
+        fig = my.mlab.figure(size = (1000,1000))
+        fig = my.mlab.gcf()
+        brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
+        if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
+        elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
+        brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
+        my.mlab.savefig(figure = fig,filename = fname1)
+        my.mlab.close()
+
+        view = 'med'
+        fname2 = view + '_' + fig_str + '.png'
+        fig = my.mlab.figure(size = (1000,1000))
+        fig = my.mlab.gcf()
+        brain = surfer.Brain(subject_id, hemi, surf, figure = fig, views = view, background = 'white', alpha = 1)
+        if subject_id == 'fsaverage': brain.add_morphometry("avg_sulc", colormap="binary", min = -3, max = 3, colorbar = False)
+        elif subject_id == 'lausanne125': brain.add_morphometry("avg_curv", colormap="binary", min = -.5, max = .5, colorbar = False)
+        brain.add_annotation(parc_file, hemi = hemi, borders = True, alpha=.25, color = 'lightsteelblue')
+        my.mlab.savefig(figure = fig,filename = fname2)
+        my.mlab.close()     
 
