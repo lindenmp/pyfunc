@@ -519,7 +519,10 @@ def run_pheno_correlations(df_phenos, df_z, method = 'pearson', assign_p = 'perm
             if method == 'spearman':
                 for col in df_z.columns:
                     df_tmp.loc[col,'coef'] = sp.stats.spearmanr(df_phenos.loc[:,pheno], df_z.loc[:,col])[0]
-                    df_tmp.loc[col,'p'] = sp.stats.spearmanr(df_phenos.loc[:,pheno], df_z.loc[:,col])[1]    
+                    df_tmp.loc[col,'p'] = sp.stats.spearmanr(df_phenos.loc[:,pheno], df_z.loc[:,col])[1]
+        elif assign_p == 'none':
+            df_tmp.loc[:,'coef'] = df_z.corrwith(df_phenos.loc[:,pheno], method = method)
+
         # append
         df_tmp.reset_index(inplace = True); df_tmp.rename(index=str, columns={'index': 'variable'}, inplace = True); df_tmp['pheno'] = pheno
         df_out = df_out.append(df_tmp, sort = False)
