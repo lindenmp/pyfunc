@@ -827,36 +827,43 @@ def shuffle_data(X, y, seed = 0):
 def cross_val_score_nuis(X, y, c, my_cv, reg, my_scorer):
     
     accuracy = np.zeros(len(my_cv),)
-
+    y_pred_out = np.zeros(y.shape)
+    
     for k in np.arange(len(my_cv)):
         tr = my_cv[k][0]
         te = my_cv[k][1]
 
         # Split into train test
         X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
-        y_train = y.iloc[tr].values.reshape(-1,1); y_test = y.iloc[te].values.reshape(-1,1)
+        y_train = y.iloc[tr]; y_test = y.iloc[te]
         c_train = c.iloc[tr,:]; c_test = c.iloc[te,:]
 
         # standardize predictors
         sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
+        X_train = pd.DataFrame(data = X_train, index = X.iloc[tr,:].index, columns = X.iloc[tr,:].columns)
+        X_test = pd.DataFrame(data = X_test, index = X.iloc[te,:].index, columns = X.iloc[te,:].columns)
 
         # standardize covariates
         sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
+        c_train = pd.DataFrame(data = c_train, index = c.iloc[tr,:].index, columns = c.iloc[tr,:].columns)
+        c_test = pd.DataFrame(data = c_test, index = c.iloc[te,:].index, columns = c.iloc[te,:].columns)
 
         # regress nuisance (X)
         nuis_reg = LinearRegression(); nuis_reg.fit(c_train, X_train)
         X_pred = nuis_reg.predict(c_train); X_train = X_train - X_pred
         X_pred = nuis_reg.predict(c_test); X_test = X_test - X_pred
 
-        # regress nuisance (y)
-        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
-        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
-        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
+        # # regress nuisance (y)
+        # nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        # y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        # y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
 
         reg.fit(X_train, y_train)
         accuracy[k] = my_scorer(reg, X_test, y_test)
         
-    return accuracy
+        y_pred_out[te] = reg.predict(X_test)
+        
+    return accuracy, y_pred_out
 
 
 def cross_val_score_nuis_regional(X, y, c, c_str, my_cv, reg, my_scorer):
@@ -912,25 +919,29 @@ def cross_val_score_specificity(X, y, c, my_cv, reg, my_scorer, y2, n_splits = 1
 
         # Split into train test
         X_train = X.iloc[tr,:]; X_test = X.iloc[te,:]
-        y_train = y.iloc[tr].values.reshape(-1,1)
-        y_test = y2.iloc[te].values.reshape(-1,1) # this is the only difference between this function and cross_val_score_nuis
+        y_train = y.iloc[tr]
+        y_test = y2.iloc[te] # this is the only difference between this function and cross_val_score_nuis
         c_train = c.iloc[tr,:]; c_test = c.iloc[te,:]
 
         # standardize predictors
         sc = StandardScaler(); sc.fit(X_train); X_train = sc.transform(X_train); X_test = sc.transform(X_test)
+        X_train = pd.DataFrame(data = X_train, index = X.iloc[tr,:].index, columns = X.iloc[tr,:].columns)
+        X_test = pd.DataFrame(data = X_test, index = X.iloc[te,:].index, columns = X.iloc[te,:].columns)
 
         # standardize covariates
         sc = StandardScaler(); sc.fit(c_train); c_train = sc.transform(c_train); c_test = sc.transform(c_test)
+        c_train = pd.DataFrame(data = c_train, index = c.iloc[tr,:].index, columns = c.iloc[tr,:].columns)
+        c_test = pd.DataFrame(data = c_test, index = c.iloc[te,:].index, columns = c.iloc[te,:].columns)
         
         # regress nuisance (X)
         nuis_reg = LinearRegression(); nuis_reg.fit(c_train, X_train)
         X_pred = nuis_reg.predict(c_train); X_train = X_train - X_pred
         X_pred = nuis_reg.predict(c_test); X_test = X_test - X_pred
 
-        # regress nuisance (y)
-        nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
-        y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
-        y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
+        # # regress nuisance (y)
+        # nuis_reg = LinearRegression(); nuis_reg.fit(c_train, y_train)
+        # y_pred = nuis_reg.predict(c_train); y_train = y_train - y_pred
+        # y_pred = nuis_reg.predict(c_test); y_test = y_test - y_pred
 
         reg.fit(X_train, y_train)
         accuracy[k] = my_scorer(reg, X_test, y_test)
