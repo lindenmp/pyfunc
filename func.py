@@ -599,7 +599,7 @@ def dependent_corr(xy, xz, yz, n, twotailed=True):
 
 
 # Create grouping variable
-def create_dummy_vars(df, groups):
+def create_dummy_vars(df, groups, filter_comorbid = True):
     dummy_vars = np.zeros((df.shape[0],1)).astype(bool)
     for i, group in enumerate(groups):
         x = df.loc[:,group].values == 4
@@ -610,9 +610,10 @@ def create_dummy_vars(df, groups):
     dummy_vars = dummy_vars[:,1:]
     
     # filter comorbid
-    comorbid_diag = np.sum(dummy_vars, axis = 1) > 1
-    print('Comorbid N:', comorbid_diag.sum())
-    dummy_vars[comorbid_diag,:] = 0
+    if filter_comorbid:
+        comorbid_diag = np.sum(dummy_vars, axis = 1) > 1
+        print('Comorbid N:', comorbid_diag.sum())
+        dummy_vars[comorbid_diag,:] = 0
 
     for i, group in enumerate(groups):
         print(group+':', dummy_vars[:,i].sum())
