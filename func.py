@@ -999,3 +999,81 @@ def rank_int(series, c=3.0/8):
     
     return transformed
 
+
+def distance_bin(A):
+    '''
+    The distance matrix contains lengths of shortest paths between all
+    pairs of nodes. An entry (u,v) represents the length of shortest path
+    from node u to node v. The average shortest path length is the
+    characteristic path length of the network.
+    Parameters
+    ----------
+    A : NxN np.ndarray
+        binary directed/undirected connection matrix
+    Returns
+    -------
+    D : NxN
+        distance matrix
+    Notes
+    -----
+    Lengths between disconnected nodes are set to Inf.
+    Lengths on the main diagonal are set to 0.
+    Algorithm: Algebraic shortest paths.
+    '''
+
+    B = A > 0
+    D = np.eye(len(B))
+    n = 1
+    nPATH = B.copy()  # n path matrix
+    L = (nPATH != 0)  # shortest n-path matrix
+
+    while np.any(L):
+        D += n * L
+        n += 1
+        nPATH = np.dot(nPATH, B)
+        L = (nPATH != 0) * (D == 0)
+
+    D[D == 0] = np.inf  # disconnected nodes are assigned d=inf
+    np.fill_diagonal(D, 0)
+
+    return D
+
+
+def participation_coef(W, ci, degree='undirected'):
+    '''
+    Participation coefficient is a measure of diversity of intermodular
+    connections of individual nodes.
+    Parameters
+    ----------
+    W : NxN np.ndarray
+        binary/weighted directed/undirected connection matrix
+    ci : Nx1 np.ndarray
+        community affiliation vector
+    degree : str
+        Flag to describe nature of graph 'undirected': For undirected graphs
+                                         'in': Uses the in-degree
+                                         'out': Uses the out-degree
+    Returns
+    -------
+    P : Nx1 np.ndarray
+        participation coefficient
+    '''
+    if degree == 'in':
+        W = W.T
+
+    _, ci = np.unique(ci, return_inverse=True)
+    ci += 1
+
+    n = len(W)  # number of vertices
+    Ko = np.sum(W, axis=1)  # (out) degree
+    Gc = np.dot((W != 0), np.diag(ci))  # neighbor community affiliation
+    Kc2 = np.zeros((n,))  # community-specific neighbors
+
+    for i in range(1, int(np.max(ci)) + 1):
+        Kc2 += np.square(np.sum(W * (Gc == i), axis=1))
+
+    P = np.ones((n,)) - Kc2 / np.square(Ko)
+    # P=0 if for nodes with no (out) neighbors
+    P[np.where(np.logical_not(Ko))] = 0
+
+    return P
